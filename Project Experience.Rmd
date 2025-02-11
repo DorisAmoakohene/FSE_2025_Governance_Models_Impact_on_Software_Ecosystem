@@ -1,0 +1,109 @@
+---
+title: "Project Experience"
+author: "Doris Amoakohene"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+# Load necessary library
+library(data.table)
+
+# Load the data
+FSE_DATA <- fread("FSE_DATA.csv")
+
+# Convert column 2 (Years on Project) to numeric (if not already)
+FSE_DATA[[2]] <- as.numeric(FSE_DATA[[2]])
+```
+
+
+```{r}
+FSE_DATA[, project_experience := fifelse(
+  is.na(FSE_DATA[[2]]), "Not Informed",
+  fifelse(FSE_DATA[[2]] < 1, "Less than 1 year",
+    fifelse(FSE_DATA[[2]] >= 1 & FSE_DATA[[2]] < 3, "1 to 3 years",
+      fifelse(FSE_DATA[[2]] >= 3 & FSE_DATA[[2]] < 7, "3 to 7 years",
+        "More than 7 years")
+    )
+  )
+)]
+```
+
+
+```{r}
+# Convert project experience to an ordered factor for better plotting
+FSE_DATA$project_experience <- factor(FSE_DATA$project_experience, 
+                                      levels = c("Less than 1 year", "1 to 3 years", 
+                                                 "3 to 7 years", "More than 7 years", "Not Informed"))
+
+# Check if the categorization worked correctly
+table(FSE_DATA$project_experience)
+
+```
+
+
+
+
+
+```{r}
+pdf("project-experience-distribution.pdf", width = 10, height = 6)
+ggplot(FSE_DATA, aes(x = project_experience)) +
+  geom_bar(fill = "steelblue", color = "black") +
+  theme_minimal() +
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),
+    plot.background = element_rect(fill = "white", color = NA),
+    text = element_text(size = 12),
+    axis.title.x = element_blank(),
+    axis.text.x = element_text(size = 10, angle = 45, hjust = 1)
+  ) +
+  ggtitle("Project Experience Distribution (Years on Project)") +
+  ylab("Count")
+dev.off()
+
+
+
+# Select Likert data (columns 6:22)
+data_p <- FSE_DATA[, 6:22, with = FALSE] # Adjust if needed
+data_counts <- apply(data_p, 2, as.numeric)
+
+# Convert matrix to data.table and then to a data frame for compatibility with likert
+data_counts <- as.data.table(data_counts)
+data_counts <- as.data.frame(data_counts)
+
+# Define the response mapping
+responses <- c("5" = "Strongly agree", 
+               "4" = "Somewhat agree", 
+               "3" = "Neither agree nor disagree", 
+               "2" = "Somewhat disagree", 
+               "1" = "Strongly disagree")
+
+# Map numeric responses to labeled categories and ensure proper factor levels
+for (i in seq_along(data_counts)) {
+  data_counts[, i] <- factor(responses[as.character(data_counts[, i])], 
+                             levels = c("Strongly disagree", "Somewhat disagree", 
+                                        "Neither agree nor disagree", "Somewhat agree", "Strongly agree"))
+}
+
+# Add project experience column to the data for grouping
+data_counts$project_experience <- FSE_DATA$project_experience
+
+
+x_counts <- likert(data_counts[, -ncol(data_counts)], grouping = data_counts$project_experience)
+
+
+pdf("survey-likert-by-project-experience.pdf", width = 12, height = 6)
+likert.bar.plot(x_counts, centered = FALSE, include.n = TRUE, group.order = x_counts$results$Item, legend.position = "right") +
+  theme_minimal() +  # Ensures a white background
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),
+    plot.background = element_rect(fill = "white", color = NA),
+    text = element_text(size = 12),
+    axis.title.x = element_blank(),
+    axis.text.x = element_text(size = 10, angle = 45, hjust = 1)
+  ) +
+  ggtitle("Likert Chart Grouped by Project Experience (Years on Project)")
+dev.off()
+
+```
+

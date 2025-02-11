@@ -1,0 +1,122 @@
+---
+title: "survey-likert-counts-yes"
+author: "Doris Amoakohene"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+```{r}
+library(data.table)
+library(likert)
+library(ggplot2) # Ensure ggplot2 is loaded for theme adjustments
+
+# Load the data
+FSE_DATA <- fread("FSE_DATA.csv")
+
+# Filter the data to include only rows where column 3 has "Yes"
+FSE_DATA_YES <- FSE_DATA[FSE_DATA[[3]] == "Yes", ] 
+
+# Select the columns for Likert analysis (adjust column range as needed)
+data_p <- FSE_DATA_YES[-1, 6:22] 
+data_counts <- apply(data_p, 2, as.numeric)
+
+# Convert matrix to data.table and then to a data frame for compatibility with likert
+data_counts <- as.data.table(data_counts)
+data_counts <- as.data.frame(data_counts)
+
+# Define the response mapping
+responses <- c("5" = "Strongly agree", 
+               "4" = "Somewhat agree", 
+               "3" = "Neither agree nor disagree", 
+               "2" = "Somewhat disagree", 
+               "1" = "Strongly disagree")
+
+# Select the columns to generate the chart
+columns <- colnames(data_counts)
+filtered_counts <- data_counts[columns]
+
+# Map numeric responses to labeled categories and ensure proper factor levels
+for (i in seq_along(filtered_counts)) {
+  filtered_counts[, i] <- factor(responses[as.character(filtered_counts[, i])], 
+                                 levels = c("Strongly disagree", "Somewhat disagree", 
+                                            "Neither agree nor disagree", "Somewhat agree", "Strongly agree"))
+}
+
+# Create a likert object
+x_counts <- likert(filtered_counts)
+
+
+pdf("survey-likert-counts-yes-white.pdf", width = 12, height = 6)
+likert.bar.plot(x_counts, centered = FALSE, include.n = TRUE, 
+                group.order = x_counts$results$Item, legend.position = "right") +
+  theme_minimal() + 
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),
+    plot.background = element_rect(fill = "white", color = NA),
+    text = element_text(size = 12),
+    axis.title.x = element_blank(),
+    axis.text.x = element_text(size = 10, angle = 45, hjust = 1)
+  ) +
+  ggtitle("Likert Chart with Counts for 'Yes' Responses Only")
+dev.off()
+
+```
+
+
+
+
+
+```{r}
+library(data.table)
+library(likert)
+
+# Load the data
+FSE_DATA <- fread("FSE_DATA.csv")
+
+# Filter the data to include only rows where column 3 has "Yes"
+FSE_DATA_YES <- FSE_DATA[FSE_DATA[[3]] == "Yes", ] 
+
+# Select the columns for Likert analysis (adjust column range as needed)
+data_p <- FSE_DATA_YES[-1, 6:22] 
+data_counts <- apply(data_p, 2, as.numeric)
+
+# Convert your matrix `data_counts` to a data.table and then to a data frame for compatibility with likert
+data_counts <- as.data.table(data_counts)
+data_counts <- as.data.frame(data_counts)
+
+# Define the response mapping
+responses <- c("5" = "Strongly agree", 
+               "4" = "Somewhat agree", 
+               "3" = "Neither agree nor disagree", 
+               "2" = "Somewhat disagree", 
+               "1" = "Strongly disagree")
+
+# Select the columns to generate the chart
+columns <- colnames(data_counts)
+filtered_counts <- data_counts[columns]
+
+# Map numeric responses to labeled categories and ensure proper factor levels
+for (i in seq_along(filtered_counts)) {
+  filtered_counts[, i] <- factor(responses[as.character(filtered_counts[, i])], 
+                                 levels = c("Strongly disagree", "Somewhat disagree", 
+                                            "Neither agree nor disagree", "Somewhat agree", "Strongly agree"))
+}
+
+# Create a likert object
+x_counts <- likert(filtered_counts)
+
+# Generate a Likert chart and save it as a PDF (with raw counts)
+pdf("survey-likert-counts-yes.pdf", width = 12, height = 6)
+likert.bar.plot(x_counts, centered = FALSE, include.n = TRUE, group.order = x_counts$results$Item, legend.position = "right") +
+  theme(
+    text = element_text(size = 12),
+    axis.title.x = element_blank(),
+    axis.text.x = element_text(size = 10, angle = 45, hjust = 1)
+  ) +
+  ggtitle("Likert Chart with Counts for 'Yes' Responses Only")
+dev.off()
+
+```
+
+
