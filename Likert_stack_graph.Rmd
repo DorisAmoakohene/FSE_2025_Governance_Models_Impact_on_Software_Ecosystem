@@ -59,6 +59,82 @@ dev.off()
 ```
 
 
+With Legend
+
+
+```{r}
+# Load necessary libraries
+library(data.table)
+library(likert)
+library(ggplot2)
+library(gridExtra)  # For legend formatting
+
+# Load the data
+FSE_DATA <- fread("FSE_DATA.csv")
+
+# Extract the actual questions from **row 2, columns F2 to V2 (which are index 6 to 22)**
+question_labels <- unlist(FSE_DATA[1, 6:22, with = FALSE])  # Extract text from row 2 correctly
+
+# Remove the first row to keep only responses
+data_p <- FSE_DATA[-1, 6:22]
+
+# Convert responses to numeric
+data_counts <- apply(data_p, 2, as.numeric)
+
+# Convert to data.table and then to a data frame for compatibility with likert
+data_counts <- as.data.table(data_counts)
+data_counts <- as.data.frame(data_counts)
+
+# Define Likert response mapping
+responses <- c("5" = "Strongly agree", 
+               "4" = "Somewhat agree", 
+               "3" = "Neither agree nor disagree", 
+               "2" = "Somewhat disagree", 
+               "1" = "Strongly disagree")
+
+# Select the columns to generate the chart
+columns <- colnames(data_counts)
+filtered_counts <- data_counts[columns]
+
+# Map numeric responses to labeled categories and ensure proper factor levels
+for (i in seq_along(filtered_counts)) {
+  filtered_counts[, i] <- factor(responses[as.character(filtered_counts[, i])], 
+                                 levels = c("Strongly disagree", "Somewhat disagree", 
+                                            "Neither agree nor disagree", "Somewhat agree", "Strongly agree"))
+}
+
+# Create a likert object
+x_counts <- likert(filtered_counts)
+
+# Generate the Likert chart
+likert_plot <- likert.bar.plot(x_counts, centered = FALSE, include.n = TRUE, 
+                group.order = x_counts$results$Item, legend.position = "right") +
+  theme_minimal() +  # Ensures a minimal white background
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),
+    plot.background = element_rect(fill = "white", color = NA),
+    text = element_text(size = 12),
+    axis.title.x = element_blank(),
+    axis.text.x = element_text(size = 10, angle = 45, hjust = 1)
+  ) +
+  ggtitle("Likert Chart for Data.Table Governance Model")
+
+# Format the legend properly **as a column, divided into rows**
+legend_text <- paste0("Q", seq_along(question_labels), ": ", question_labels)  # Numbered list
+legend_matrix <- matrix(legend_text, ncol = 1)  # **Column format**
+legend_grob <- gridExtra::tableGrob(legend_matrix)  # Proper column display
+
+# Save the combined plot and legend to a PDF
+pdf("survey-likert-for_Data.Table_Governance_Responses_Final_Legend.pdf", width = 21, height = 19)
+gridExtra::grid.arrange(likert_plot, legend_grob, ncol = 1, heights = c(3, 1))  # Expands downward, no overlap
+dev.off()
+
+```
+
+
+
+
+
 
 
 
